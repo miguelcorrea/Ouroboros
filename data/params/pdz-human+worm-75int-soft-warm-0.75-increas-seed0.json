@@ -1,0 +1,13 @@
+{
+  "io": "pdz-human+worm-75int-soft-warm-0.75-increas-seed0",
+  "mode": "soft",
+  "init": "warm",
+  "int_frac": 0.75,
+  "msa1": "../../data/pdz/mixed/mixture_incres_a_75int_0.fasta",
+  "msa2": "../../data/pdz/mixed/mixture_incres_b_75int_0.fasta",
+  "int_limit": 3065,
+  "test": true,
+  "gap_threshold": 0.5,
+  "contact_mtx": "../../data/pdz/contact_mtx_8.csv",
+  "n_jobs": 20
+}

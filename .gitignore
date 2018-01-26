@@ -1,0 +1,23 @@
+#Python bytecode/cache files
+*.pyo
+*.pyc
+__pycache__/
+
+#Images
+*.png
+*.svg
+*.jpeg
+*.jpg
+
+#HTML files
+.html
+
+#Binaries
+bin/
+
+#PyCharm files
+.idea/
+
+#R files
+.RData
+.Rhistory

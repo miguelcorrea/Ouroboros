@@ -1,0 +1,13 @@
+{
+  "io": "synthalns-75int-soft-warm-0.75",
+  "mode": "soft",
+  "init": "warm",
+  "int_frac": 0.75,
+  "msa1": "../../data/synthetic/subset_a_75int.fasta",
+  "msa2": "../../data/synthetic/subset_b_75int.fasta",
+  "contact_mtx": "../../data/synthetic/contact_mtx.csv",
+  "int_limit": 1649,
+  "test": true,
+  "gap_threshold": 0.5,
+  "n_jobs": 20
+}
