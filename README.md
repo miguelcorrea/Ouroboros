@@ -50,7 +50,8 @@ If you have passed the ground truth, a series of files detail the performance:
 In hard EM, the log-likelihood is not guaranteed to increase monotonically, and so this does not necessarily indicate a problem. In soft EM, however, it is theoretically supposed to. In rare occasions, however, the logistic regression might not estimate the parameters well enough. This leads to decreases in log-likelihood, although we do not expect it to happen with the current settings. This issue can be solved by increasing the maximum number of iterations of logistic regression.
 
 ## How do I cite it?
-If you use our software in your research, please cite our paper
+If you use our software in your research, please cite our paper:
+Improving intermolecular contact prediction through protein-protein interaction prediction using coevolutionary analysis with expectation-maximization." bioRxiv (2018): 254789
 
 # Contributing
 We welcome contributions to improve our software, including feature additions, bug fixes and improvements to documentation. 
@@ -59,8 +60,8 @@ We welcome contributions to improve our software, including feature additions, b
 This is an open source tool available under the BSD-3 license. See the LICENSE file for details.
 
 # Important links
-* Source code repo:
-* Issue tracker: 
+* Source code repo: https://github.com/miguelcorrea/Ouroboros
+* Issue tracker: https://github.com/miguelcorrea/Ouroboros/issues
 
 # Requirements
 * Python 3
@@ -70,5 +71,3 @@ This is an open source tool available under the BSD-3 license. See the LICENSE f
 * matplotlib
 * seaborn
 * tqdm
-
-
