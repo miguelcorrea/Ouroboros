@@ -1,12 +1,13 @@
 Ouroboros
 ==============
+[![DOI](https://zenodo.org/badge/119078766.svg)](https://zenodo.org/badge/latestdoi/119078766)
 
 This is the repository for Ouroboros, an implementation of an algorithm for intermolecular coevolutionary analysis. Ouroboros is meant to be used when the multiple sequence alignments to be analyzed contain pairs of non-interacting sequences, which decreases intermolecular contact prediction performance. Ouroboros attempts to identify, without any prior information, which pairs are interacting and which are not. These protein-protein interaction predictions can in turn be used to improve contact prediction performance.
 
 # FAQ
 
 ## How does it work?
-Ouroboros combines coevolutionary analysis with expectation-maximization to simultaneously model protein-protein interaction and intermolecular contacts. It alternates between two steps: predicting protein-protein interaction based on the model describing intermolecular contacts, and estimating the model parameters based on protein-protein interaction predictions. By weighting proteins in the models according to the protein-protein interaction predictions, we boost the coevolutionary signal. For further details, please read our paper.
+Ouroboros combines coevolutionary analysis with expectation-maximization to simultaneously model protein-protein interaction and intermolecular contacts. It alternates between two steps: predicting protein-protein interaction based on the model describing intermolecular contacts, and estimating the model parameters based on protein-protein interaction predictions. By weighting proteins in the models according to the protein-protein interaction predictions, we boost the coevolutionary signal. For further details, please [read our paper](https://www.biorxiv.org/content/early/2018/01/28/254789).
 
 ## How do I run it?
 The script takes only one argument, the path to a JSON file that contains options for the arguments.
@@ -51,7 +52,7 @@ In hard EM, the log-likelihood is not guaranteed to increase monotonically, and 
 
 ## How do I cite it?
 If you use our software in your research, please cite our paper:
-Improving intermolecular contact prediction through protein-protein interaction prediction using coevolutionary analysis with expectation-maximization." bioRxiv (2018): 254789
+"Improving intermolecular contact prediction through protein-protein interaction prediction using coevolutionary analysis with expectation-maximization." bioRxiv (2018): 254789
 
 # Contributing
 We welcome contributions to improve our software, including feature additions, bug fixes and improvements to documentation. 
