@@ -24,8 +24,8 @@ bin/
 .idea/
 
 #Sublime Project files
-.sublime-project
-.sublime-workspace
+*.sublime-project
+*.sublime-workspace
 sftp-config.json
 
 #R files
