@@ -3,6 +3,11 @@
 *.pyc
 __pycache__/
 
+# Used by pytest
+.cache
+.pytest_cache/
+_configtest.o.d
+
 #Images
 *.png
 *.svg
@@ -17,6 +22,11 @@ bin/
 
 #PyCharm files
 .idea/
+
+#Sublime Project files
+.sublime-project
+.sublime-workspace
+sftp-config.json
 
 #R files
 .RData

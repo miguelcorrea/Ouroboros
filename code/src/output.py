@@ -51,6 +51,9 @@ def create_output(labels_per_iter, alt_llhs_per_iter, null_llhs_per_iter,
     Create output concerning PPI prediction
     """
     checks_dir = os.path.join(out_path, 'output')
+
+    # Create file explaining output files
+    write_readme(out_path)
     # Evolution of labels accros iterations
     write_evolution_zs(labels_per_iter, out_path)
     # Compute sums of log-likelihoods
@@ -129,7 +132,6 @@ def write_evolution_zs(labels_per_iter, results_dir):
         results_dir, 'output', "z_over_iters.pdf"))
 
 
-# TODO: write docstring
 def write_llhs(alt_llhs_per_iter, null_llhs_per_iter, alt_int_per_iter,
                null_nonint_per_iter, total_llhs_per_iter, results_dir, test,
                all_true_int, all_true_nonint, all_true):
@@ -165,9 +167,9 @@ def write_llhs(alt_llhs_per_iter, null_llhs_per_iter, alt_int_per_iter,
     np.savetxt(total_llhs_path, total_llhs_per_iter)
 
     if test:
-        true_int_path = os.path.join(results_dir, "true_int_llhs.csv")
+        true_int_path = os.path.join(results_dir, "true_alt_llhs.csv")
         np.savetxt(true_int_path, all_true_int)
-        true_nonint_path = os.path.join(results_dir, "true_nonint_llhs.csv")
+        true_nonint_path = os.path.join(results_dir, "true_alt_llhs.csv")
         np.savetxt(true_nonint_path, all_true_nonint)
         true_total_path = os.path.join(results_dir, "true_total_llhs.csv")
         np.savetxt(true_total_path, all_true)
@@ -230,3 +232,46 @@ def write_model_report(true_labels, pred_labels, mode, checks_dir):
     report = os.path.join(checks_dir, "model_report.txt")
     with open(report, "w") as target:
         target.write("".join([perf_str, "\n"]))
+
+
+def write_readme(out_path):
+    """
+    """
+    readme = """
+    # README
+    This file explains the different files created by the analysis.
+    The most important files to look at in the results are:
+    The most important files to look at in the results are:
+    * labels_per_iter.csv is a matrix (of dimensions sequence pairs x EM iterations) containing the interaction probability for each sequence pairs over iterations of EM
+    * output/z_over_iters.pdf shows the evolution of the protein-protein interaction probabilities over EM iterations
+    * output/convergence.png shows the evolution of the log-likelihoods
+
+    If you have passed ground truth about the interactions, you will obtain some additional files:
+    * true_alt_llhs.csv contains the log-likelihood of the ground truth according to the coevolutionary model over EM iterations
+    * true_null_llhs.csv contains the log-likelihood of the ground truth according to the independent model over EM iterations
+    * true_total_llhs.csv contains the total log-likelihood of the ground truth over EM iterations
+    * output/model_report.txt contains the model performance (as cross-entropy log-loss and Matthews Correlation Coefficient).
+    * output/conf_mtx.png and norm_conf_mtx.png contain confusion matrices; the second one is normalized to take into account class imbalance.
+    * output/perf_per_iter.png shows the evolution of the performance over EM iterations
+
+    Some additional files provide more detailed information:
+    * all_alt_llhs.csv contains the log-likelihood of the data according to the coevolutionary model over EM iterations
+    * all_null_llhs.csv contains the log-likelihood of the data according to the the independent evolution model over EM iterations
+    * all_total_llhs.csv contains the total log-likelihood of the data over EM iterations
+    * num_mtx_*.csv contains the alignments as numeric matrices
+    * bin_mtx_*.csv contains the one-hot encoded alignments (binary matrices in the paper)
+    * processed_contact_matrix.csv (if you have passed a contact matrix) contains the ground truth contact matrix once it has been processed like the input alignments (i.e. removal of constant and gappy columns).
+    * output/alt_llhs_mtx_*.csv contains the log probability of each individual residue at the concatenated alignments at a particular iteration according to the coevolutionary model
+    * output/null_llhs_mtx_*.csv contains the log probability of each individual residue at the concatenated alignments at a particular iteration according to the null model
+    * output/fixed_alphas_*_iter_init.csv contains the selected regularization strengths for each column for MSA A and B.
+    * output/dfs_*_iter_init.csv contains the degrees of freedom of the models selected during initialization
+
+    If you choose to perform contact prediction, you will obtain some additional output:
+    * output/final_contact_mtx.csv is a matrix (of dimensions msa1 x msa2, once they have been processed) containing coevolutionary strengths between all pairs of residues between your two MSAs
+    * output/norm_final_contact_mtx.csv is the same matrix, normalized using the Average Product Correction of Dunn *et al.* (2008)
+
+    Other undocumented output is present for development and testing reasons, and might be removed in the future.
+    """
+    readme_path = os.path.join(out_path, "README.md")
+    with open(readme_path, 'w') as f:
+        f.write(readme)

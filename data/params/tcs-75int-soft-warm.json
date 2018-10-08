@@ -1,0 +1,14 @@
+{
+  "io": "tcs-75int-soft-warm",
+  "mode": "soft",
+  "init": "warm",
+  "int_frac": 0.75,
+  "msa1": "../../data/tcs/mixed/aln_hk_75int.fasta",
+  "msa2": "../../data/tcs/mixed/aln_rr_75int.fasta",
+  "int_limit": 3341,
+  "test": true,
+  "gap_threshold": 0.5,
+  "dfmax":100,
+  "max_init_iters":100,
+  "n_jobs": 20
+}

@@ -41,9 +41,8 @@ def process_contact_mtx(contact_mtx, gappy_idxs_a, constant_idxs_a,
 def main(msa_a, msa_b, results_dir, gap_threshold=0.5, contact_mtx=None,
          aa_table=globalvars.AA_TABLE):
     """
-    Function to preprocess multiple sequence alignments.
-
-    #TODO: Admit arbitrary number of MSAs; overengineering at the moment
+    Convenience function to preprocess multiple sequence alignments
+    and write them to disk.
 
     Arguments
     ---------
@@ -67,18 +66,16 @@ def main(msa_a, msa_b, results_dir, gap_threshold=0.5, contact_mtx=None,
     num_mtx_a, bin_mtx_a, gappy_idxs_a, constant_idxs_a = process(
         msa_a, gap_threshold, aa_table)
 
-    num_a_path = os.path.join(results_dir, "num_mtx_a.csv")
-    np.savetxt(num_a_path, num_mtx_a, delimiter=",")
-
-    bin_a_path = os.path.join(results_dir, "bin_mtx_a.csv")
-    np.savetxt(bin_a_path, bin_mtx_a, delimiter=",")
-
     num_mtx_b, bin_mtx_b, gappy_idxs_b, constant_idxs_b = process(
         msa_b, gap_threshold, aa_table)
 
+    num_a_path = os.path.join(results_dir, "num_mtx_a.csv")
+    np.savetxt(num_a_path, num_mtx_a, delimiter=",")
+    bin_a_path = os.path.join(results_dir, "bin_mtx_a.csv")
+    np.savetxt(bin_a_path, bin_mtx_a, delimiter=",")
+
     num_b_path = os.path.join(results_dir, "num_mtx_b.csv")
     np.savetxt(num_b_path, num_mtx_b, delimiter=",")
-
     bin_b_path = os.path.join(results_dir, "bin_mtx_b.csv")
     np.savetxt(bin_b_path, bin_mtx_b, delimiter=",")
 
@@ -89,7 +86,8 @@ def main(msa_a, msa_b, results_dir, gap_threshold=0.5, contact_mtx=None,
                                                     constant_idxs_b)
         processed_mtx_path = os.path.join(
             results_dir, "processed_contact_mtx.csv")
-        np.savetxt(processed_mtx_path, processed_contact_mtx, delimiter=',')
+        np.savetxt(processed_mtx_path,
+                   processed_contact_mtx, delimiter=',')
         return num_mtx_a, bin_mtx_a, num_mtx_b, bin_mtx_b, processed_contact_mtx
     else:
         return num_mtx_a, bin_mtx_a, num_mtx_b, bin_mtx_b

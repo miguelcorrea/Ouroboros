@@ -8,6 +8,6 @@
   "int_limit": 3065,
   "test": true,
   "gap_threshold": 0.5,
-  "contact_mtx": "../../data/pdz/contact_mtx_8.csv",
+  "contact_mtx": "../../data/pdz/contact_mtx_8angstrom.csv",
   "n_jobs": 20
 }

@@ -27,6 +27,7 @@ def del_gappy_cols(msa, gap_threshold):
         Filtered MSA
     idxs: list of indexes of gappy columns
     """
+    cols = msa.shape[1]
     msa = [str(seq) for seq in iter(msa)
            ]  # TabularMSA format is not flexible enough yet
     # Transpose MSA for easier iteration
@@ -38,6 +39,9 @@ def del_gappy_cols(msa, gap_threshold):
     for idx, row in enumerate(msa):
         if row.count('-') / len(row) >= gap_threshold:
             idxs.append(idx)
+    if len(idxs) == cols:
+        raise Exception(f"""All columns have a gap frequency equal to or above
+            the provided gap threshold {gap_threshold}.""")
     # Remove gappy columns; always remove the one with the highest index!
     for idx in sorted(idxs, reverse=True):
         del msa[idx]
@@ -55,7 +59,7 @@ def del_constant_cols(msa):
 
     Arguments
     ---------
-    msa: array-like
+    msa: array-like; MSA in numeric matrix format
 
     Returns
     -------
@@ -64,19 +68,22 @@ def del_constant_cols(msa):
     idxs: list of indexes of constant columns
     """
     msa = list(zip(*msa))
+    cols = len(msa)
 
     # Collect indices of columns that stay constant
     idxs = []
     for idx, row in enumerate(msa):
         if len(set(row)) == 1:
             idxs.append(idx)
+    if len(idxs) == cols:
+        raise Exception(f"""All MSA columns are constant.""")
     # Delete constant columns
     for idx in sorted(idxs, reverse=True):
         del msa[idx]
     msa = list(zip(*msa))
     msa = np.array([list(item) for item in msa])
 
-    return msa,idxs
+    return msa, idxs
 
 
 def make_num_mtx(msa, aa_table):
@@ -120,7 +127,8 @@ def make_bin_mtx(num_mtx, aa_table):
     Each column of the alignment occupies a submatrix that has as many columns
     as there are letters in the amino acid alphabet.
 
-    If we consider an amino acid alphabet of 21 letters, take, for example the
+    If we consider an amino acid alphabet of 21 letters
+    (all standard 20 amino acids plus the gap symbol), take, for example the
     first 20 columns of the binary matrix. Row i corresponds to the ith
     sequence in the alignment, and column j to the jth amino acid in the
     alphabet. In this case, position [i,j] indicates if amino acid j is

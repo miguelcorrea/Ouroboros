@@ -28,8 +28,7 @@ from globalvars import ALPHA_RANGE
 # Hidden variables / convergence #
 ##################################
 
-
-def get_random_labels(no_seqs, int_frac, mode, prior_inters=None):
+def get_random_labels(no_seqs, int_frac, mode):
     """
     Function to create random labels for interaction / non-interaction
 
@@ -49,48 +48,10 @@ def get_random_labels(no_seqs, int_frac, mode, prior_inters=None):
     elif mode == 'soft':
         labels = np.random.choice([0.1, 0.9], no_seqs, p=[
                                   1 - int_frac, int_frac])
-    if prior_inters is not None:
-        labels = use_prior_inters(labels, prior_inters)
-
     return labels
 
 
-def get_warm_labels(alt_llhs, null_llhs, int_frac, mode, prior_inters=None):
-    """
-    Function to assign hidden variables after a 'warm' start.
-
-    Arguments
-    ---------
-    alt_llhs:   array-like, contains log-likelihoods of the alternative model
-    null_llhs:  array-like, contains log-likelihoods of the null model
-    int_frac:   float, prior probability of fraction of interacting proteins
-    mode:       str, whether we are performing hard or soft EM
-
-    Returns
-    ---------
-    labels: array-like, values of the hidden variables
-
-    """
-    if mode == 'hard':
-        # Assign a percentage of sequences below a certain difference threshold
-        # to 'non-interacting'
-        diffs = np.subtract(alt_llhs, null_llhs)
-        idx_cutoff = round(diffs.size * (1 - int_frac))
-        threshold = sorted(diffs)[idx_cutoff]
-
-        labels = [0 if diff < threshold else 1 for diff in diffs]
-
-    elif mode == 'soft':
-        # Simply use the output of the update equation
-        labels = update_labels(alt_llhs, null_llhs, int_frac, mode)
-
-    if prior_inters is not None:
-        labels = use_prior_inters(labels, prior_inters)
-
-    return labels
-
-
-def update_labels(alt_llhs, null_llhs, int_frac, mode, prior_inters=None):
+def update_labels(alt_llhs, null_llhs, int_frac, mode):
     """
     Function to update the hidden variables after each iteration of the EM
     loop.
@@ -115,29 +76,25 @@ def update_labels(alt_llhs, null_llhs, int_frac, mode, prior_inters=None):
                 (np.exp(null_llhs) * (1 - int_frac))
             labels = numerator / denominator
         except Warning:  # Increase floating precision to 80 bits
-            numerator = np.exp(alt_llhs, dtype='longdouble') * int_frac
-            denominator = (np.exp(alt_llhs, dtype='longdouble') * int_frac) + \
-                (np.exp(null_llhs, dtype='longdouble') * (1 - int_frac))
-            labels = numerator / denominator
+            try:
+                numerator = np.exp(alt_llhs, dtype='longdouble') * int_frac
+                denominator = (np.exp(alt_llhs, dtype='longdouble') * int_frac) + \
+                    (np.exp(null_llhs, dtype='longdouble') * (1 - int_frac))
+                labels = numerator / denominator
+            except ZeroDivisionError:
+                # This should not happen unless:
+                #    - int_frac >= 1 or int_frac <= 0 (will raise exception at the start)
+                #    - floating point underflow after trying with 80 bits precision
+                #      (possibly due to extremely long proteins)
+                raise Exception(
+                    "Unexpected error: denominator in update equation is 0. Contact developer.")
+
     if mode == 'hard':
         labels = round_labels(labels)
-    if prior_inters is not None:
-        labels = use_prior_inters(labels, prior_inters)
     return labels
 
 
-def use_prior_inters(labels, prior_inters):
-    """
-    If there prior information about the interaction, modify the new weights
-    according to this.
-    """
-    for idx, z in enumerate(labels):
-        if not np.isnan(prior_inters[idx]):
-            labels[idx] = prior_inters[idx]
-    return labels
-
-
-def has_converged(labels, pre_labels, mode, tol):
+def has_converged(labels, pre_labels, mode, tol=0.005):
     """
     Function to determine whether the expectation-maximization loop has reached
     convergence
@@ -158,17 +115,16 @@ def has_converged(labels, pre_labels, mode, tol):
     """
 
     converged = False
-
+    sum_abs_diffs = np.sum(np.absolute(np.subtract(labels, pre_labels)))
     if mode == 'hard':
         # Convergence reached when there is no difference with the previous
         # step
-        if np.sum(np.absolute(np.subtract(labels, pre_labels))) == 0:
+        if sum_abs_diffs == 0:
             converged = True
 
     elif mode == 'soft':
         # Convergence reached when the difference between the two vectors is
         # smaller than the tolerance
-        sum_abs_diffs = np.sum(np.absolute(np.subtract(labels, pre_labels)))
         if sum_abs_diffs / (len(labels)) < tol:
             converged = True
 
@@ -198,6 +154,7 @@ def calc_alt_llhs(num_mtx_a, bin_mtx_b, models_a, num_mtx_b, bin_mtx_a,
                           Each matrix is of size
                           (number of sequences x
                           (number of columns x number of allowed amino acids))
+    # TODO: update documentation!
     models_a, models_b:   list, contains one fitted LogNet object per MSA
                           column
 
@@ -208,12 +165,10 @@ def calc_alt_llhs(num_mtx_a, bin_mtx_b, models_a, num_mtx_b, bin_mtx_a,
     """
     alt_mtx1 = get_alt_model(num_mtx_a, bin_mtx_b, models_a)
     alt_mtx2 = get_alt_model(num_mtx_b, bin_mtx_a, models_b)
-    cat_mtx = np.concatenate((alt_mtx1, alt_mtx2), axis=1)
-    plots.draw_llh_mtx(cat_mtx, os.path.join(
-        out_dir, "".join(["alt_llhs_map_", str(iters), ".png"])))
+    concat_mtx = np.concatenate((alt_mtx1, alt_mtx2), axis=1)
     np.savetxt(os.path.join(out_dir, "".join(
-        ["alt_llhs_mtx_", str(iters), ".csv"])), cat_mtx, delimiter=',')
-    alt_llhs = np.sum(cat_mtx, axis=1)
+        ["alt_llhs_mtx_", str(iters), ".csv"])), concat_mtx, delimiter=',')
+    alt_llhs = np.sum(concat_mtx, axis=1)
     return alt_llhs
 
 
@@ -232,7 +187,7 @@ def get_alt_model(num_mtx, bin_mtx, models, pc=np.log(1 / 210)):
     bin_mtx: array-like. Contains a multiple sequence alignment as a binary
              matrix with all proteins under consideration,
              interacting and non-interacting.
-    models:  list, contains one fitted LogNet object per MSA column
+    models:  list, contains one fitted model object per MSA column
     pc:      float, pseudocount for when a residue was not present in the
              training data, as its probability cannot be estimated properly
 
@@ -241,12 +196,10 @@ def get_alt_model(num_mtx, bin_mtx, models, pc=np.log(1 / 210)):
     alt_mtx: array-like. Contains the values of the log-probability of the data
              according to the logistic models, element by element.
     """
-    # Initialize alternative model array
-    alt_mtx = np.zeros_like(num_mtx).T
+    alt_mtx = np.zeros_like(num_mtx,dtype='float64').T
 
-    # Iterate over columns / models
+    # Iterate over columns and their corresponding models
     for i, col in enumerate(num_mtx.T):
-
         cur_model = models[i]
 
         # Get model predictions
@@ -255,7 +208,7 @@ def get_alt_model(num_mtx, bin_mtx, models, pc=np.log(1 / 210)):
         for j, res in enumerate(col):
 
             if res in cur_model.classes_:
-                # Get index of residue in self.classes_
+                # Get index of residue type in self.classes_
                 res_idx = np.asscalar(np.where(cur_model.classes_ == res)[0])
                 log_prob = log_probs[:, res_idx][j]
                 # Check whether it has 0 probability
@@ -264,6 +217,7 @@ def get_alt_model(num_mtx, bin_mtx, models, pc=np.log(1 / 210)):
                 else:  # If it is 0, use a pseudocount
                     alt_mtx[i][j] = pc
             # If the residue was not in the training data, use pseudocount
+            # (possible in hard EM)
             else:
                 alt_mtx[i][j] = pc
 
@@ -337,7 +291,8 @@ def fit_msa_models(num_mtx, bin_mtx, mode, fixed_alphas=None, n_jobs=2,
                 for alpha in ALPHA_RANGE:
                     clf = SGDClassifier(loss='log', penalty='elasticnet',
                                         alpha=alpha, l1_ratio=l1_ratio,
-                                        n_jobs=n_jobs, max_iter=100)
+                                        n_jobs=n_jobs, max_iter=100,
+                                        random_state=42)
                     clf.fit(bin_mtx, col, sample_weight=sample_weights)
                     col_models.append(clf)
                 # Discard models with a number of degrees of freedom above
@@ -368,15 +323,17 @@ def fit_msa_models(num_mtx, bin_mtx, mode, fixed_alphas=None, n_jobs=2,
                 # use those to train the models
                 clf = SGDClassifier(loss='log', penalty='elasticnet',
                                     alpha=fixed_alphas[idx], l1_ratio=l1_ratio,
-                                    n_jobs=n_jobs, max_iter=1000)
+                                    n_jobs=n_jobs, max_iter=1000,
+                                    random_state=42)
                 clf.fit(bin_mtx, col, sample_weight=sample_weights)
                 models.append(clf)
         else:  # Column contains only one class; use a dummy model
+            # Can happen in hard EM
             clf = DummyEstimator(prob=0.99 - (1 / 210))
             clf.fit(bin_mtx, col)
             models.append(clf)
             if fixed_alphas is None:
-                # Common selected value, strong regularization
+                # Commonly selected value, strong regularization
                 alpha_per_col.append(0.01)
 
     if fixed_alphas:
@@ -424,6 +381,7 @@ def calc_degrees_freedom(model):
     # The number of degrees of freedom is the number of non-zero coefficients
     # accross all of the 3D matrix, not counting those that are repeated
     dfs = len(np.unique(all_nonzero))
+
     return dfs
 
 
@@ -453,6 +411,7 @@ def calc_bic(posterior_logprobs, dfs, n_obs):
 
 def calc_null_llhs(a1, a2, mode, weights, out_path, iters, pc_null=1 / 2100):
     """
+    TODO: unit test
     Calculate the log-likelihood of each sequence pair in the MSAs
     under the assumption of independent evolution: this is, the probability
     of each amino acid depends only on its frequency in a particular column.
@@ -493,9 +452,6 @@ def calc_null_llhs(a1, a2, mode, weights, out_path, iters, pc_null=1 / 2100):
     null_mtx_2 = score_null(a2, null_2, pc_null)
 
     concat_mtx = np.concatenate((null_mtx_1, null_mtx_2), axis=1)
-    plots.draw_llh_mtx(concat_mtx,
-                       os.path.join(out_path,
-                                    ''.join(['null_llhs_map', str(iters), '.png'])))
     np.savetxt(os.path.join(out_path,
                             ''.join(['null_llhs_mtx_', str(iters), '.csv'])),
                concat_mtx, delimiter=',')
@@ -610,6 +566,10 @@ def select_noninteracting(num_mtx_a, num_mtx_b, labels):
                                 num_mtx_b
     nonint_labels:              array-like. Selected items of labels
     """
+    if not all(np.unique(labels) == np.unique(np.array([0, 1]))):
+        raise Exception("""Hidden variable values other than 0 or 1 in call to
+            corrmut.select_noninteracting(). This function is only called in
+            hard EM, where values should be rounded to 0 or 1.""")
     idxs = np.where(np.asarray(labels) == 0)
     nonint_num_a = np.squeeze(np.take(num_mtx_a, idxs, axis=0))
     nonint_num_b = np.squeeze(np.take(num_mtx_b, idxs, axis=0))
@@ -653,7 +613,7 @@ def contact_prediction(num_mtx_a, bin_mtx_b, num_mtx_b, bin_mtx_a,
 ##############################
 
 def init_model(num_mtx_a, bin_mtx_b, num_mtx_b, bin_mtx_a, mode,
-               init, int_frac, out_dir, n_jobs, dfmax, prior_inters=None):
+               init, int_frac, out_dir, n_jobs, dfmax):
     """
     Calculate initial values for the hidden variables before starting the
     EM loop, either randomly or by warm initialization.
@@ -672,7 +632,6 @@ def init_model(num_mtx_a, bin_mtx_b, num_mtx_b, bin_mtx_a, mode,
     out_dir:    str, path to the directory where plots are saved
     n_jobs:     int, number of CPUs to use to fit the models
     dfmax:      int, maximum number of degrees of freedom allowed
-    prior_inters: array-like, contains prior information about interactions
 
     Returns
     ---------
@@ -718,12 +677,8 @@ def init_model(num_mtx_a, bin_mtx_b, num_mtx_b, bin_mtx_a, mode,
                                    num_mtx_a.shape[0] * [0],
                                    out_dir, 'init')
 
-        init_labels = get_warm_labels(
-            alt_llhs, null_llhs, int_frac, mode=mode, prior_inters=prior_inters)
-
-        couplings, contact_mtx = compute_couplings(models_a, models_b)
-        np.savetxt(os.path.join(out_dir, ''.join(
-            ['contact_mtx_', 'init', '.csv'])), contact_mtx, delimiter=',')
+        init_labels = update_labels(
+            alt_llhs, null_llhs, int_frac, mode=mode)
 
     return init_labels, alt_llhs, null_llhs, norm_contact_mtx, alphas_a, alphas_b
 
@@ -731,8 +686,7 @@ def init_model(num_mtx_a, bin_mtx_b, num_mtx_b, bin_mtx_a, mode,
 def em_loop(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, labels,
             int_frac, mode, out_dir, n_jobs,
             max_iters=20, tol=0.005,
-            true_labels=None, dfmax=100, fixed_alphas_a=None, fixed_alphas_b=None,
-            prior_inters=None):
+            true_labels=None, dfmax=100, fixed_alphas_a=None, fixed_alphas_b=None):
     """
     Main function for carrying out expectation-maximization.
 
@@ -841,7 +795,7 @@ def em_loop(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, labels,
         # Save previous labels for convergence calculations; update labels
         pre_labels = labels
         labels = update_labels(alt_llhs, null_llhs,
-                               int_frac, mode=mode, prior_inters=prior_inters)
+                               int_frac, mode=mode)
 
         # Predict contacts and dump contact matrix
         couplings, contact_mtx = compute_couplings(models_a, models_b)
@@ -867,7 +821,7 @@ def em_loop(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, labels,
 
 def em_wrapper(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, n_starts,
                int_frac, mode, results_dir, n_jobs, dfmax, test,
-               em_args, true_labels=None, prior_inters=None):
+               em_args, true_labels=None):
     """
     Function for repeated calling of the expectation-maximization loop.
     This is used to carry out multiple random starts.
@@ -907,8 +861,7 @@ def em_wrapper(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, n_starts,
         print('Initializing model...')
         init_labels, *_ = init_model(num_mtx_a, bin_mtx_b, num_mtx_b,
                                      bin_mtx_a, mode, 'random',
-                                     int_frac, checks_path, n_jobs, dfmax,
-                                     prior_inters=prior_inters)
+                                     int_frac, checks_path, n_jobs, dfmax)
 
         print('Starting EM loop...')
         labels_per_iter, alt_llhs_per_iter, \
@@ -917,19 +870,17 @@ def em_wrapper(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, n_starts,
                                                             init_labels,
                                                             int_frac, mode,
                                                             checks_path, n_jobs,
-                                                            prior_inters=prior_inters,
                                                             **em_args)
         alt_int_per_iter, \
             null_nonint_per_iter = compute_llhs(labels_per_iter,
                                                 alt_llhs_per_iter,
-                                                null_llhs_per_iter,
-                                                mode)
+                                                null_llhs_per_iter)
         # Create output for the current iteration
         if test:
             alt_true_per_iter, \
                 null_true_per_iter = compute_llhs(
                     [em_args['true_labels']] * len(labels_per_iter),
-                    alt_llhs_per_iter, null_llhs_per_iter, mode)
+                    alt_llhs_per_iter, null_llhs_per_iter)
             labels_per_iter.insert(0, init_labels)
             output.create_output(labels_per_iter, alt_llhs_per_iter,
                                  null_llhs_per_iter, alt_int_per_iter,
@@ -943,44 +894,9 @@ def em_wrapper(num_mtx_a, num_mtx_b, bin_mtx_a, bin_mtx_b, n_starts,
                                  null_nonint_per_iter, mode, start_path, test)
 
 
-def compute_llhs(labels_per_iter, alt_llhs_per_iter, null_llhs_per_iter, mode):
+def compute_llhs(labels_per_iter, alt_llhs_per_iter, null_llhs_per_iter):
     """
-    Function for repeated calling of get_relevant_llhs().
-
-    Arguments
-    ---------
-    labels_per_iter:        list, contains the values of the hidden variables
-                            for each iteration
-    alt_llhs_per_iter:      list, contains alternative model log-likelihoods
-                            of all sequence pairs for each iteration
-    null_llhs_per_iter:     list, contains null model log-likelihoods of all
-                            sequence pairs for each iteration
-    mode:                   str, whether we are performing hard or soft EM
-
-    Returns
-    -------
-    alt_int_per_iter:       list, contains alternative model log-likelihoods of
-                            putatively interacting sequence pair for each
-                            iteration
-    null_nonint_per_iter:   list, contains null model log-likelihoods of
-                            putatively non-interacting sequence pairs for each
-                            iterations
-    """
-    alt_int_per_iter = []
-    null_nonint_per_iter = []
-
-    for idx, val in enumerate(labels_per_iter):
-        alt, null = get_relevant_llhs(alt_llhs_per_iter[idx],
-                                      null_llhs_per_iter[idx], val, mode)
-        alt_int_per_iter.append(alt)
-        null_nonint_per_iter.append(null)
-
-    return alt_int_per_iter, null_nonint_per_iter
-
-
-def get_relevant_llhs(alt_llhs, null_llhs, labels, mode):
-    """
-    Auxiliary function to obtain the relevant log-likelihoods.
+    Function for calculating log-likelihoods of the data according to the models.
 
     In the case of hard EM, these are the alternative model log-likelihoods of
     putatively interacting sequence pairs and the null model log-likelihood
@@ -991,35 +907,33 @@ def get_relevant_llhs(alt_llhs, null_llhs, labels, mode):
     and the null model model log-likelihoods of all sequence pairs, weighted
     according to the their associated hidden variable.
 
+    Both of these amount to a matrix multiplication of the hidden variable
+    values and the log-likelihoods.
+
     Arguments
     ---------
-    alt_llhs:   array-like, contains alternative model sequence pair
-                log-likelihoods
-    null_llhs:  array-like, contains null model sequence pair log-likelihoods
-    labels:     array-like, contains the vector of hidden variables at the
-                current iteration
-    mode:
+    labels_per_iter:        list, contains the values of the hidden variables
+                            for each iteration
+    alt_llhs_per_iter:      list, contains alternative model log-likelihoods
+                            of all sequence pairs for each iteration
+    null_llhs_per_iter:     list, contains null model log-likelihoods of all
+                            sequence pairs for each iteration
 
     Returns
     -------
-    alt_int_llh:     array-like, contains alternative model sequence pair
-                     log-likelihoods after the pertinent steps (see above)
-    null_nonint_llh: array-like, contains null model sequence pair
-                     log-likelihoods after the pertinent steps (see above)
+    alt_int_per_iter:       list, contains alternative model log-likelihoods of
+                            putatively interacting sequence pair for each
+                            iteration
+    null_nonint_per_iter:   list, contains null model log-likelihoods of
+                            putatively non-interacting sequence pairs for each
+                            iterations
     """
-    labels = np.asarray(labels)
-    if mode == 'hard':
-        # Get the indexes of the interacting and the non-interacting proteins
-        int_idxs = np.where(labels == 1)[0]
-        nonint_idxs = np.where(labels == 0)[0]
-        # Select the log-likelihoods of each with the indexes
-        alt_int_llh = np.take(alt_llhs, int_idxs)
-        null_nonint_llh = np.take(null_llhs, nonint_idxs)
 
-    if mode == 'soft':
-        # Weight the log-likelihoods of all sequence pairs according to their
-        # associated hidden variable
-        alt_int_llh = np.multiply(alt_llhs, labels)
-        null_nonint_llh = np.multiply(null_llhs, (1 - labels))
+    zs = np.array(labels_per_iter)
+    alts = np.array(alt_llhs_per_iter)
+    nulls = np.array(null_llhs_per_iter)
+
+    alt_int_llh = np.multiply(alts, zs)
+    null_nonint_llh = np.multiply(nulls, (1-zs))
 
     return alt_int_llh, null_nonint_llh

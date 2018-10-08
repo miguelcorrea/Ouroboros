@@ -1,11 +1,17 @@
 #!/usr/bin/python
 """
-Main script for running combined expectation maximization - correlated mutations algorithm.
+Main script for running combined expectation maximization - correlated mutations
+algorithm.
 
 Usage: python run_analysis.py $PARAMETER_FILE_PATH
 
-@author: Miguel Correa Marrero
+__author__ = "Miguel Correa Marrero"
+__credits__ = ["Miguel Correa Marrero","Richard G.H Immink", "Dick de Ridder", 
+              "Aalt-Jan van Dijk"]
+__maintainer__ = "Miguel Correa Marrero"
+__license__ = "BSD-3"
 """
+
 # Allows plotting without a running X server
 # Prevent skbio from setting the matplotlib backend
 import matplotlib as mpl
@@ -13,12 +19,12 @@ mpl.use("Agg")
 
 import os
 from sys import argv
-import json
 from random import seed
 import warnings
 
 import numpy as np
 
+import input_handling
 import output
 import globalvars
 import preprocess
@@ -28,121 +34,21 @@ import contacts
 from skbio import TabularMSA, Protein
 
 
-def read_args(json_path):
+def generate_true_labels(int_limit, n_obs):
     """
-    Read JSON file containing analysis parameters
+    Function to generate ground truth labels as specified by int_limit.
     """
-    with open(json_path, 'r') as source:
-        args = json.load(source)
-    return args
+    if int_limit > 0:
+        if int_limit > n_obs:
+            raise ValueError(f"""Invalid value of int_limit {int_limit}:
+                             greater than the number of sequences""")
+        else:
+            true_labels = [1 if idx <=
+                           int_limit else 0 for idx in range(n_obs)]
+    else:  # Allows test cases where all sequence pairs are non-interacting
+        true_labels = [0 for item in range(n_obs)]
+    return true_labels
 
-
-def digest_args(args):
-    """
-    Process input parameters and set defaults
-    """
-    io_path = args['io']
-    msa_a_path = args['msa1']
-    msa_b_path = args['msa2']
-    if not os.path.isfile(msa_a_path):
-        raise ValueError('Path to MSA A is not a file')
-    if not os.path.isfile(msa_b_path):
-        raise ValueError('Path to MSA B is not a file')
-    if msa_a_path == msa_b_path:
-        raise ValueError('Path to MSA A and MSA B are the same')
-
-    int_frac = args['int_frac']
-    init = args['init']
-    mode = args['mode']
-    test = bool(args['test'])
-
-    keys = list(args.keys())
-
-    if 'gap_threshold' in keys:
-        gap_threshold = args['gap_threshold']
-        if gap_threshold > 0.99 or gap_threshold < 0:
-            raise ValueError(f'Gap threshold value {gap_threshold} outside bounds')
-    else:
-        gap_threshold = 0.5
-
-    if 'int_limit' in keys:
-        int_limit = args['int_limit']
-        if int_limit < 0:
-            raise ValueError(f'Invalid value of int_limit: {int_limit}')
-    elif test:
-        raise ValueError(
-            'int_limit argument is mandatory when using test mode')
-
-    if 'contact_mtx' in keys:
-        contact_mtx = args['contact_mtx']
-        if not os.path.isfile(contact_mtx):
-            raise ValueError('Path to contact matrix is not a file')
-    elif test:
-        warnings.warn(
-            'Running in test mode, but without a ground truth contact matrix')
-        contact_mtx = None
-    else:
-        contact_mtx = None
-
-    if 'prior_ints' in keys:
-        prior_ints = args['prior_ints']
-        warnings.warn("prior_ints option is not throughly tested: use with caution")
-        if not os.path.isfile(prior_ints):
-            raise ValueError(
-                'Path to file containing prior information is not a file')
-    else:
-        prior_ints = None
-
-    if 'n_jobs' in keys:
-        n_jobs = args['n_jobs']
-    else:
-        n_jobs = 2
-    if 'n_starts' in keys:
-        n_starts = args['n_starts']
-    elif init == 'random':
-        n_starts = 5
-        if n_starts < 1:
-            raise ValueError(f'Invalid value of n_starts: {n_starts}')
-    else:  # Not applicable in warm start
-        n_starts = None
-
-    if 'dfmax' in keys:
-        dfmax = args['dfmax']
-        if dfmax < 0:
-            raise ValueError(f'Invalid value of dfmax: {dfmax}')
-    else:
-        dfmax = 100
-
-    return io_path, msa_a_path, msa_b_path, gap_threshold, int_frac, init, \
-        mode, test, int_limit, contact_mtx, n_jobs, n_starts, dfmax, prior_ints
-
-
-def pack_em_kwargs(args, true_labels):
-    """
-    Prepare keyword arguments for EM loop
-    """
-    em_args = {}
-
-    keys = list(args.keys())
-
-    if 'tol' in keys:
-        em_args['tol'] = args['tol']
-    else:
-        em_args['tol'] = 0.005
-
-    if 'max_iters' in keys:
-        em_args['max_iters'] = args['max_iters']
-    else:
-        em_args['max_iters'] = 20
-
-    if 'dfmax' in keys:
-        em_args['dfmax'] = args['dfmax']
-    else:
-        em_args['dfmax'] = 100
-
-    em_args['true_labels'] = true_labels
-
-    return em_args
 
 if __name__ == "__main__":
 
@@ -155,10 +61,10 @@ if __name__ == "__main__":
     np.random.seed(42)
 
     # Read and process parameters from JSON file
-    args = read_args(argv[1])
-    io_path, msa_a_path, msa_b_path, gap_threshold, int_frac, init, mode,\
-        test, int_limit, contact_mtx, n_jobs, n_starts, dfmax, prior_ints = digest_args(
-            args)
+    args = input_handling.read_args(argv[1])
+    io_path, msa_a_path, msa_b_path, gap_threshold, int_frac, init, mode, \
+        test, int_limit, contact_mtx, n_jobs, n_starts, dfmax, max_init_iters, \
+        max_reg_iters, predict_contacts = input_handling.digest_args(args)
 
     # Create directory tree
     results_dir = os.path.join(io_path)
@@ -166,10 +72,10 @@ if __name__ == "__main__":
     checks_dir = os.path.join(results_dir, "output")
     os.mkdir(checks_dir)
 
-    #############################
-    # Load and preprocess input #
-    #############################
-    print("Reading input...")
+    #######################################
+    # Load, preprocess and validate input #
+    #######################################
+    print("Reading and processing input...")
     msa_a = TabularMSA.read(msa_a_path, constructor=Protein)
     msa_b = TabularMSA.read(msa_b_path, constructor=Protein)
     if contact_mtx:
@@ -178,30 +84,18 @@ if __name__ == "__main__":
             true_contact_mtx = preprocess.main(msa_a, msa_b, results_dir,
                                                contact_mtx=true_contact_mtx,
                                                gap_threshold=gap_threshold)
+        input_handling.validate_contact_mtx(msa_a, msa_b, contact_mtx)
     else:
         num_mtx_a, bin_mtx_a, num_mtx_b, bin_mtx_b = preprocess.main(
             msa_a, msa_b, results_dir, gap_threshold=gap_threshold)
+    input_handling.validate_alignments(num_mtx_a, num_mtx_b)
 
-    n_obs = num_mtx_a.shape[0]
     if test:
-        if int_limit > 0:
-            if int_limit > n_obs:
-                raise ValueError(f"""Invalid value of int_limit {int_limit}:
-                                 greater than the number of sequences""")
-            true_labels = [1 if idx <=
-                           int_limit else 0 for idx in range(n_obs)]
-        else:  # For test cases where all sequence pairs are non-interacting
-            true_labels = [0 for item in range(n_obs)]
+        true_labels = generate_true_labels(int_limit, num_mtx_a.shape[0])
     else:
         true_labels = None
 
-    # Read file containing prior information about the interactions
-    if prior_ints:
-        prior_inters = np.genfromtxt(prior_ints, delimiter=',')
-    else:
-        prior_inters = None
-
-    em_args = pack_em_kwargs(args, true_labels)
+    em_args = input_handling.pack_em_kwargs(args, true_labels)
 
     ###########################################################
     # Combined expectation-maximization-correlated mutations  #
@@ -214,7 +108,7 @@ if __name__ == "__main__":
                                                                                    num_mtx_b, bin_mtx_a,
                                                                                    mode, init, int_frac,
                                                                                    checks_dir, n_jobs,
-                                                                                   dfmax, prior_inters)
+                                                                                   dfmax)
 
         print('Start EM loop...')
         labels_per_iter, alt_llhs_per_iter, \
@@ -225,45 +119,44 @@ if __name__ == "__main__":
                                                                     checks_dir, n_jobs,
                                                                     **em_args,
                                                                     fixed_alphas_a=alphas_a,
-                                                                    fixed_alphas_b=alphas_b,
-                                                                    prior_inters=prior_inters)
+                                                                    fixed_alphas_b=alphas_b)
 
-        print('Predicting contacts with final protein-protein interaction predictions...')
-        final_couplings,\
-            final_contact_mtx = corrmut.contact_prediction(num_mtx_a, bin_mtx_b,
-                                                           num_mtx_b, bin_mtx_a,
-                                                           labels_per_iter[-1], mode,
-                                                           n_jobs, dfmax)
-        np.savetxt(os.path.join(checks_dir, ''.join(
-            ['final_contact_mtx', '.csv'])), final_contact_mtx, delimiter=',')
+        if predict_contacts:
+            print(
+                'Predicting contacts with final protein-protein interaction predictions...')
+            final_couplings,\
+                final_contact_mtx = corrmut.contact_prediction(num_mtx_a, bin_mtx_b,
+                                                               num_mtx_b, bin_mtx_a,
+                                                               labels_per_iter[
+                                                                   -1], mode,
+                                                               n_jobs, dfmax)
+            np.savetxt(os.path.join(checks_dir, ''.join(
+                ['final_contact_mtx', '.csv'])), final_contact_mtx, delimiter=',')
 
-        norm_final_contact_mtx = contacts.normalize_contact_mtx(
-            final_contact_mtx)
-        np.savetxt(os.path.join(checks_dir, ''.join(
-            ['norm_final_contact_mtx', '.csv'])), norm_final_contact_mtx,
-            delimiter=',')
+            norm_final_contact_mtx = contacts.normalize_contact_mtx(
+                final_contact_mtx)
+            np.savetxt(os.path.join(checks_dir, ''.join(
+                ['norm_final_contact_mtx', '.csv'])), norm_final_contact_mtx,
+                delimiter=',')
+            # Add final contact predictions
+            contacts_per_iter.append(norm_final_contact_mtx)
 
         # Insert labels and log-likelihoods from the initial step
         labels_per_iter.insert(0, init_labels)
         alt_llhs_per_iter.insert(0, init_alt_llhs)
         null_llhs_per_iter.insert(0, init_null_llhs)
         contacts_per_iter.insert(0, init_contacts)
-        # Add final contact predictions
-        contacts_per_iter.append(norm_final_contact_mtx)
 
-        # Compute weighted likelihoods for each iteration
-        alt_int_per_iter, \
-            null_nonint_per_iter = corrmut.compute_llhs(labels_per_iter,
-                                                        alt_llhs_per_iter,
-                                                        null_llhs_per_iter,
-                                                        mode)
-        # Compute weighted likelihoods for the true solution (if available)
-        # and create output
+        # Compute weighted likelihoods and create output
+        alt_int_per_iter, null_nonint_per_iter = corrmut.compute_llhs(labels_per_iter,
+                                                                      alt_llhs_per_iter,
+                                                                      null_llhs_per_iter)
         if test:
+            # Use information about the true solution
             alt_true_per_iter, \
                 null_true_per_iter = corrmut.compute_llhs(
                     [true_labels] * len(labels_per_iter), alt_llhs_per_iter,
-                    null_llhs_per_iter, mode)
+                    null_llhs_per_iter)
 
             output.create_output(labels_per_iter, alt_llhs_per_iter,
                                  null_llhs_per_iter, alt_int_per_iter,
