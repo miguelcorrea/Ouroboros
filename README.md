@@ -2,6 +2,8 @@ Ouroboros
 ==============
 [![DOI](https://zenodo.org/badge/119078766.svg)](https://zenodo.org/badge/latestdoi/119078766)
 
+[![Build Status](https://travis-ci.org/miguelcorrea/Ouroboros.svg?branch=master)](https://travis-ci.org/miguelcorrea/Ouroboros)
+
 This is the repository for Ouroboros, an implementation of an algorithm for intermolecular coevolutionary analysis. Ouroboros is meant to be used when the multiple sequence alignments to be analyzed contain pairs of non-interacting sequences, which decreases intermolecular contact prediction performance. Ouroboros attempts to identify, without any prior information, which pairs are interacting and which are not. These protein-protein interaction predictions can in turn be used to improve contact prediction performance.
 
 # FAQ
