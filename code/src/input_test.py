@@ -14,6 +14,7 @@ import sys
 import input_handling
 from skbio import TabularMSA, Protein
 
+
 class TestAlignmentValidation():
 
     def test_ok_alns(self):
@@ -282,9 +283,15 @@ class TestDigestNStarts():
 class TestDigestNJobs():
 
     def test_ok(self):
-        args = {'n_jobs': 3}
+        args = {'n_jobs': 1}
         n_jobs = input_handling.digest_n_jobs(args)
-        assert n_jobs == 3
+        assert n_jobs == 1
+
+    def test_more_cpus(self):
+        cpus = os.cpu_count()
+        args = {'n_jobs': cpus + 1}
+        n_jobs = input_handling.digest_n_jobs(args)
+        assert n_jobs == cpus
 
     def test_wrong(self):
         args = {'n_jobs': 0}
