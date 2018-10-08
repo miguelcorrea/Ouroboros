@@ -3,8 +3,8 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 import os
 import sys
-PARENT = [os.path.join('..')]
-sys.path.extend(PARENT)
+# PARENT = [os.path.join('..')]
+# sys.path.extend(PARENT)
 from dummyestimator import DummyEstimator
 
 

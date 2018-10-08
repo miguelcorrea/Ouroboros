@@ -4,8 +4,8 @@ Unit tests for the preprocess module.
 import numpy as np
 import os
 import sys
-PARENT = [os.path.join('..')]
-sys.path.extend(PARENT)
+# PARENT = [os.path.join('..')]
+# sys.path.extend(PARENT)
 import preprocess
 from globalvars import AA_TABLE
 from skbio import TabularMSA, Protein

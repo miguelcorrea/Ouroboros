@@ -7,8 +7,8 @@ from skbio import TabularMSA, Protein
 
 import os
 import sys
-PARENT = [os.path.join('..')]
-sys.path.extend(PARENT)
+# PARENT = [os.path.join('..')]
+# sys.path.extend(PARENT)
 import msa_fun
 from globalvars import AA_TABLE
 

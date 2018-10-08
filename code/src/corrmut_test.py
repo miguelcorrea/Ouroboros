@@ -7,8 +7,8 @@ from sklearn.linear_model import SGDClassifier
 import inspect
 import os
 import sys
-PARENT = [os.path.join('..')]
-sys.path.extend(PARENT)
+# PARENT = [os.path.join('..')]
+# sys.path.extend(PARENT)
 import corrmut
 import msa_fun
 from globalvars import AA_TABLE

@@ -9,8 +9,8 @@ import pytest
 import os
 import sys
 
-PARENT = [os.path.join('..')]
-sys.path.extend(PARENT)
+# PARENT = [os.path.join('..')]
+# sys.path.extend(PARENT)
 import input_handling
 from skbio import TabularMSA, Protein
 
