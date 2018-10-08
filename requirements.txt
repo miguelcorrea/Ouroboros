@@ -1,5 +1,5 @@
 numpy==1.13.1
-sklearn==0.19
+sklearn==0.19.2
 skbio==0.5.1
 matplotlib==2.0.2
 seaborn==0.8.0
