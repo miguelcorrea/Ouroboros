@@ -93,3 +93,4 @@ This is an open source tool available under the BSD-3 license. See the LICENSE f
 * matplotlib
 * seaborn
 * tqdm
+* biopython

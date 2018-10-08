@@ -4,3 +4,4 @@ scikit-bio==0.5.1
 matplotlib==2.0.2
 seaborn==0.8.0
 tqdm==4.7.2
+biopython==1.70
