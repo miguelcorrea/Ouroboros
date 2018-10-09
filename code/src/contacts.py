@@ -9,7 +9,6 @@ import subprocess
 
 from collections import OrderedDict
 from sklearn.metrics import matthews_corrcoef
-from Bio import SeqIO
 from skbio import TabularMSA, Protein
 
 import warnings
@@ -287,150 +286,9 @@ def discretize_pred_contact_mtx(pred_contact_mtx, contact_threshold=0):
     return pred_contact_mtx
 
 
-##########################################
-# Distance / contact matrix calculations #
-##########################################
-
-def remove_water(chain):
-    """
-    Given a protein chain, remove waters forming part of the sequence.
-
-    Arguments
-    ---------
-    chain:  Bio.PDB.Chain.Chain object
-
-    Returns
-    -------
-    filtered_chain: list of Bio.PDB.Residue.Residue, with no "water residues"
-    """
-    filtered_chain = []
-    for res in list(chain):
-        if res.__dict__['resname'] == 'HOH':
-            pass
-        else:
-            filtered_chain.append(res)
-    return filtered_chain
-
-
-def three_letter_to_one_letter(chain, code=THREE_TO_ONE):
-    """
-    'Translate' a chain of amino acids in three letter code to one letter code.
-
-    Arguments
-    ---------
-    chain: Bio.PDB.Chain.Chain object or list of Bio.PDB.Residue.Residue
-    code:  dict, conversion table
-
-    Returns
-    -------
-    translated_chain: string
-    """
-    translated_chain = []
-    for res in list(chain):
-        try:
-            translated_chain.append(THREE_TO_ONE[res.__dict__['resname']])
-        except KeyError:
-            warnings.warn('Unknown amino acid encountered: {}, skipping'.format(
-                res), RuntimeWarning)
-    return ''.join(translated_chain)
-
-
-def calc_residue_distance(residue_one, residue_two):
-    """
-    Given two residues, calculate the Euclidean distance between them.
-    The distance is measured between the beta carbons (or, in the case of
-    glycine, with respect to the alpha carbon).
-
-    Arguments
-    ---------
-    residue_one: Bio.PDB.Residue.Residue object
-    residue_two: Bio.PDB.Residue.Residue object
-
-    Returns
-    -------
-    dist:  float, Euclidean distance between the two residues
-    """
-    is_one_glycine = (residue_one.__dict__['resname'] == 'GLY')
-    is_two_glycine = (residue_two.__dict__['resname'] == 'GLY')
-
-    if is_one_glycine and is_two_glycine:
-        diff_vector = residue_one["CA"].coord - residue_two["CA"].coord
-    elif is_one_glycine and not is_two_glycine:
-        diff_vector = residue_one["CA"].coord - residue_two["CB"].coord
-    elif not is_one_glycine and is_two_glycine:
-        diff_vector = residue_one["CB"].coord - residue_two["CA"].coord
-    else:
-        diff_vector = residue_one["CB"].coord - residue_two["CB"].coord
-
-    dist = np.sqrt(np.sum(diff_vector * diff_vector))
-    return dist
-
-
-def calc_dist_matrix(chain_one, chain_two):
-    """
-    Given two proteins chains from a PDB file, calculate a matrix containing
-    all pairwise Euclidean distances between residues from the two different
-    chains.
-
-    Arguments
-    ---------
-    chain_one, chain_two:  Bio.PDB.Chain.Chain object, or
-                           list of Bio.PDB.Residue.Residue
-
-    Returns
-    -------
-    dist_mtx:   array-like, matrix containing pairwise Euclidean distances
-                between residues, of dimensions (chain_one, chain_two)
-    """
-    dist_mtx = np.zeros((len(chain_one), len(chain_two)))
-    for i, residue_one in enumerate(chain_one):
-        for j, residue_two in enumerate(chain_two):
-            dist_mtx[i, j] = calc_residue_distance(residue_one, residue_two)
-    return dist_mtx
-
-
-def get_contact_matrix(dist_mtx, threshold):
-    """
-    Discretize distance matrix according to a given threshold.
-    Values in the matrix that are equal or below the threshold will be True,
-    otherwise they are False.
-    This is done with the purpose of creating a contact map.
-
-    Arguments
-    ---------
-    dist_mtx:   array-like, matrix containing pairwise Euclidean distances
-                between residues, of dimensions (chain_one, chain_two)
-    Returns
-    -------
-    contact_mtx: array-like, Boolean matrix; entries with a True value
-                 represent a contact
-    """
-    return dist_mtx <= threshold
-
 #########################################
 # Mapping structure and contacts to MSA #
 #########################################
-
-
-def read_seqs_from_pdb(pdb_path):
-    """
-    Extract sequences from PDB file and remove duplicates.
-
-    Arguments
-    ---------
-    pdb_path: string, path to PDB file
-
-    Returns
-    -------
-    seqs:   list of strings, contains sequences present in the PDB file
-    """
-    seqs = []
-    with open(pdb_path, "r") as source:
-        for record in SeqIO.parse(source, 'pdb-seqres'):
-            seqs.append(str(record.seq))
-    seqs = list(set(seqs))
-    return seqs
-
 
 def align_new_seqs(existing_aln_path, new_seqs_path, out_path):
     """
