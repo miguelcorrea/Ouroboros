@@ -1,6 +1,6 @@
 Ouroboros
 ==============
-[![DOI](https://zenodo.org/badge/119078766.svg)](https://zenodo.org/badge/latestdoi/119078766)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1452511.svg)](https://doi.org/10.5281/zenodo.1452511)
 
 [![Build Status](https://travis-ci.org/miguelcorrea/Ouroboros.svg?branch=master)](https://travis-ci.org/miguelcorrea/Ouroboros)
 
