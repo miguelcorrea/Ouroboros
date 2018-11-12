@@ -41,8 +41,7 @@ AA_TABLE = {'A': 0, 'R': 1, 'N': 2,
 #####################################
 # list(np.logspace(-3,np.log10(1),15)) + [10,20,30,40]
 global ALPHA_RANGE
-# 15 12 9 6 3
-ALPHA_RANGE = list(logspace(-3, log10(1), 3)) + [10, 20, 30, 40]
+ALPHA_RANGE = list(logspace(-3, log10(1), 15)) + [10, 20, 30, 40]
 
 # ALPHA_RANGE = [0.001,
 #                0.0016378937069540646,
