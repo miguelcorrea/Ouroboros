@@ -9,7 +9,7 @@ This is the repository for Ouroboros, an implementation of an algorithm for inte
 # FAQ
 
 ## How does it work?
-Ouroboros combines coevolutionary analysis with expectation-maximization to simultaneously model protein-protein interaction and intermolecular contacts. It alternates between two steps: predicting protein-protein interaction based on the model describing intermolecular contacts, and estimating the model parameters based on protein-protein interaction predictions. By weighting proteins in the models according to the protein-protein interaction predictions, we boost the coevolutionary signal. For further details, please [read our paper](https://www.biorxiv.org/content/early/2018/01/28/254789).
+Ouroboros combines coevolutionary analysis with expectation-maximization to simultaneously model protein-protein interaction and intermolecular contacts. It alternates between two steps: predicting protein-protein interaction based on the model describing intermolecular contacts, and estimating the model parameters based on protein-protein interaction predictions. By weighting proteins in the models according to the protein-protein interaction predictions, we boost the coevolutionary signal. For further details, please [read our paper](https://doi.org/10.1093/bioinformatics/bty924).
 
 ## How do I run it?
 The *run_analysis.py* script takes only one argument, the path to a JSON file that contains options for the arguments. Some examples of these can be found in data/params.
@@ -74,7 +74,7 @@ In hard EM, the log-likelihood is not mathematically guaranteed to increase mono
 
 ## How do I cite it?
 If you use our software in your research, please cite our paper:
-"Improving intermolecular contact prediction through protein-protein interaction prediction using coevolutionary analysis with expectation-maximization." bioRxiv (2018): 254789
+Correa Marrero et al. "Improved inference of intermolecular contacts through protein-protein interaction prediction using coevolutionary analysis." Bioinformatics (2018).
 
 # Contributing
 We welcome contributions to improve our software, including feature additions, unit tests, bug fixes and improvements to documentation. 
@@ -85,7 +85,7 @@ This is an open source tool available under the BSD-3 license. See the LICENSE f
 # Important links
 * Source code repo: https://github.com/miguelcorrea/Ouroboros
 * Issue tracker: https://github.com/miguelcorrea/Ouroboros/issues
-* Preprint: https://www.biorxiv.org/content/early/2018/01/28/254789
+* Paper: https://doi.org/10.1093/bioinformatics/bty924
 
 # Requirements
 * Python 3.6+
