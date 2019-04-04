@@ -134,7 +134,7 @@ def write_evolution_zs(labels_per_iter, results_dir):
 
 def write_llhs(alt_llhs_per_iter, null_llhs_per_iter, alt_int_per_iter,
                null_nonint_per_iter, total_llhs_per_iter, results_dir, test,
-               all_true_int, all_true_nonint, all_true):
+               all_true_int=None, all_true_nonint=None, all_true=None):
     """
     Write the different log-likelihoods to disk.
 
