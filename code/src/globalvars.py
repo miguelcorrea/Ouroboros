@@ -6,7 +6,7 @@ from numpy import logspace, log10
 
 global LOGO
 LOGO = r"""
-# Ouroboros | v 0.2 (October 2018)
+# Ouroboros | v 0.3 (June 2019)
 # www.bif.wur.nl
 # Distributed under the BSD-3 License
 # - - - - - - - - - - - - - - - - - -
@@ -17,7 +17,7 @@ END = r"""
 =================================================================
 Analysis finished!
 If you use this software in your research, please cite our paper:
-https://doi.org/10.1101/254789
+https://doi.org/10.1093/bioinformatics/bty924
 =================================================================
 """
 
@@ -39,22 +39,7 @@ AA_TABLE = {'A': 0, 'R': 1, 'N': 2,
 #####################################
 # Range of regularization strengths #
 #####################################
-# list(np.logspace(-3,np.log10(1),15)) + [10,20,30,40]
+
 global ALPHA_RANGE
 ALPHA_RANGE = list(logspace(-3, log10(1), 15)) + [10, 20, 30, 40]
-
-# ALPHA_RANGE = [0.001,
-#                0.0016378937069540646,
-#                0.0026826957952797246,
-#                0.0043939705607607907,
-#                0.0071968567300115215,
-#                0.011787686347935873,
-#                0.019306977288832496,
-#                0.031622776601683791,
-#                0.0517947467923121,
-#                0.084834289824407175,
-#                0.13894954943731375,
-#                0.22758459260747887,
-#                0.37275937203149379,
-#                0.61054022965853261,
-#                1.0, 10, 20, 30, 40]
+ALPHA_RANGE = list(reversed(sorted(ALPHA_RANGE)))

@@ -8,8 +8,6 @@ expectation-maximization.
 
 import os
 
-import plots
-from helpers import round_labels
 import output
 from contacts import compute_couplings, get_interacting, normalize_contact_mtx
 
@@ -130,6 +128,28 @@ def has_converged(labels, pre_labels, mode, tol=0.005):
 
     return converged
 
+
+def round_labels(labels):
+    """
+    Round the labels for doing hard expectation-maximization.
+    The labels are rounded up to 1 if greater than 0.5, and down to 0 if below
+    0.5. In the (unlikely) event they are exactly equal to 0.5, it is randomly
+    rounded up or down.
+
+    Arguments
+    ---------
+    labels: array-like, values of the hidden variables
+
+    Returns
+    ---------
+    labels: array-like, rounded values of the hidden variables
+
+    """
+    labels = [np.random.choice([0, 1]) if x ==
+              0.5 else 1 if x > 0.5 else 0 for x in labels]
+    return labels
+
+
 #############################
 # Alternative model fitting #
 #############################
@@ -154,8 +174,7 @@ def calc_alt_llhs(num_mtx_a, bin_mtx_b, models_a, num_mtx_b, bin_mtx_a,
                           Each matrix is of size
                           (number of sequences x
                           (number of columns x number of allowed amino acids))
-    # TODO: update documentation!
-    models_a, models_b:   list, contains one fitted LogNet object per MSA
+    models_a, models_b:   list, contains one fitted SGDClassifer object per MSA
                           column
 
     Returns
@@ -194,7 +213,7 @@ def get_alt_model(num_mtx, bin_mtx, models, pc=np.log(1 / 210)):
     Returns
     ---------
     alt_mtx: array-like. Contains the values of the log-probability of the data
-             according to the logistic models, element by element.
+             according to the logistic models, element-wise.
     """
     alt_mtx = np.zeros_like(num_mtx,dtype='float64').T
 
@@ -206,7 +225,6 @@ def get_alt_model(num_mtx, bin_mtx, models, pc=np.log(1 / 210)):
         log_probs = cur_model.predict_log_proba(bin_mtx)
 
         for j, res in enumerate(col):
-
             if res in cur_model.classes_:
                 # Get index of residue type in self.classes_
                 res_idx = np.asscalar(np.where(cur_model.classes_ == res)[0])
@@ -247,7 +265,8 @@ def select_interacting(num_mtx, bin_mtx, labels):
 
 
 def fit_msa_models(num_mtx, bin_mtx, mode, fixed_alphas=None, n_jobs=2,
-                   sample_weights=None, l1_ratio=0.99, dfmax=100):
+                   sample_weights=None, l1_ratio=0.99, dfmax=100,
+                   random_state=42, sgd_tol=1e-3):
     """
     Given two MSAs, one in numeric matrix format and another in binary matrix
     format, fit logistic regressions for each column in the numeric matrix
@@ -264,6 +283,8 @@ def fit_msa_models(num_mtx, bin_mtx, mode, fixed_alphas=None, n_jobs=2,
     l1_ratio:           float, elastic net mixing parameter
     dfmax:              int, maximum number of degrees of freedom allowed in
                         the models
+    random_state:       int, random state for stochastic gradient descent
+    sgd_tol:            float, tolerance for stochastic gradient descent
 
     Returns
     -------
@@ -275,7 +296,7 @@ def fit_msa_models(num_mtx, bin_mtx, mode, fixed_alphas=None, n_jobs=2,
     n_obs = num_mtx.shape[0]
     alpha_per_col = []
 
-    # When using hard EM, select those cases with a hidden variable value of 1
+    # Select cases with a hidden variable value of 1 in hard EM
     if mode == 'hard':
         num_mtx, bin_mtx,\
             sample_weights = select_interacting(num_mtx, bin_mtx,
@@ -285,46 +306,45 @@ def fit_msa_models(num_mtx, bin_mtx, mode, fixed_alphas=None, n_jobs=2,
     for idx, col in enumerate(tqdm(num_mtx.T)):
         if len(np.unique(col)) > 1:  # Column contains more than one class
             col_models = []
-            # If no predefined values of the regularization strenght are given,
-            # train models on a range of them and select one
+            col_dfs = []
+            col_bics = []
+            # Initialization: if no predefined values of the regularization
+            # strenght are given, train models on a range of them and select one
             if fixed_alphas is None:
                 for alpha in ALPHA_RANGE:
                     clf = SGDClassifier(loss='log', penalty='elasticnet',
                                         alpha=alpha, l1_ratio=l1_ratio,
                                         n_jobs=n_jobs, max_iter=100,
-                                        random_state=42)
+                                        random_state=random_state, tol=sgd_tol)
                     clf.fit(bin_mtx, col, sample_weight=sample_weights)
-                    col_models.append(clf)
-                # Discard models with a number of degrees of freedom above
-                # a certain threshold; at a certain point we risk selecting
-                # a model that overfits the data
-                simple_models = []
-                selected_alphas = []
-                for idx, model in enumerate(col_models):
-                    dfs = calc_degrees_freedom(model)
-                    if dfs < dfmax:
-                        simple_models.append(model)
-                        selected_alphas.append(ALPHA_RANGE[idx])
-                # Select a value of the regularization strenght based on
-                # the Bayesian Information Criterion
-                bics = []
-                for model in simple_models:
+                    
+                    # Discard models with a number of degrees of freedom above
+                    # a certain threshold
+                    dfs = calc_degrees_freedom(clf)
+                    if dfs <= dfmax:
+                        col_models.append(clf)
+                        col_dfs.append(dfs)
+                    else: # Stop once models are overtly complex
+                        break
+
+                # Select regularization strenght by choosing the model with the
+                # minimum Bayesian Information Criterion
+                for j, model in enumerate(col_models):
                     posterior_logprobs = get_posterior_logprobs(col,
                                                                 bin_mtx, model)
-                    dfs = calc_degrees_freedom(model)
-                    bic = calc_bic(posterior_logprobs, dfs, n_obs)
-                    bics.append(bic)
+                    bic = calc_bic(posterior_logprobs, col_dfs[j], n_obs)
+                    col_bics.append(bic)
+                best_idx = col_bics.index(min(col_bics))
+                models.append(col_models[best_idx])
+                alpha_per_col.append(ALPHA_RANGE[best_idx])
 
-                best_idx = bics.index(min(bics))
-                models.append(simple_models[best_idx])
-                alpha_per_col.append(selected_alphas[best_idx])
             else:
-                # If predefined values of the regularization strength are given,
-                # use those to train the models
+                # EM iterations after initialization: if predefined values of
+                # the regularization strength are given, use those to fit models
                 clf = SGDClassifier(loss='log', penalty='elasticnet',
                                     alpha=fixed_alphas[idx], l1_ratio=l1_ratio,
                                     n_jobs=n_jobs, max_iter=1000,
-                                    random_state=42)
+                                    random_state=random_state, tol=sgd_tol)
                 clf.fit(bin_mtx, col, sample_weight=sample_weights)
                 models.append(clf)
         else:  # Column contains only one class; use a dummy model
@@ -629,7 +649,7 @@ def init_model(num_mtx_a, bin_mtx_b, num_mtx_b, bin_mtx_a, mode,
     mode:       str, whether we are performing hard or soft EM
     init:       str, method to initialize the hidden variables
     int_frac:   float, assumed fraction of interacting proteins
-    out_dir:    str, path to the directory where plots are saved
+    out_dir:    str, output path
     n_jobs:     int, number of CPUs to use to fit the models
     dfmax:      int, maximum number of degrees of freedom allowed
 

@@ -11,7 +11,7 @@ import numpy as np
 
 from sklearn.metrics import matthews_corrcoef, log_loss
 
-from helpers import round_labels
+from corrmut import round_labels
 import plots
 
 

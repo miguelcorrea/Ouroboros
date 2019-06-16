@@ -2,6 +2,7 @@
 """
 Preprocessing of multiple sequence alignments (MSAs) for correlated
 mutations analysis.
+
 @author: Miguel Correa
 """
 import os
@@ -10,7 +11,6 @@ import numpy as np
 
 import msa_fun
 import globalvars
-
 
 def process(aln, gap_threshold, aa_table):
     """
@@ -28,6 +28,8 @@ def process(aln, gap_threshold, aa_table):
 def process_contact_mtx(contact_mtx, gappy_idxs_a, constant_idxs_a,
                         gappy_idxs_b, constant_idxs_b):
     """
+    Function to remove positions from the contact matrix that have been removed
+    from the alignments
     """
     contact_mtx = np.delete(contact_mtx, gappy_idxs_a, axis=0)
     contact_mtx = np.delete(contact_mtx, constant_idxs_a, axis=0)

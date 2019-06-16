@@ -6,7 +6,7 @@ algorithm.
 Usage: python run_analysis.py $PARAMETER_FILE_PATH
 
 __author__ = "Miguel Correa Marrero"
-__credits__ = ["Miguel Correa Marrero","Richard G.H Immink", "Dick de Ridder", 
+__credits__ = ["Miguel Correa Marrero","Richard G.H Immink","Dick de Ridder",
               "Aalt-Jan van Dijk"]
 __maintainer__ = "Miguel Correa Marrero"
 __license__ = "BSD-3"
@@ -61,6 +61,7 @@ if __name__ == "__main__":
     np.random.seed(42)
 
     # Read and process parameters from JSON file
+    # TODO: allow use of max_init_iters and max_reg_iters parameters!
     args = input_handling.read_args(argv[1])
     io_path, msa_a_path, msa_b_path, gap_threshold, int_frac, init, mode, \
         test, int_limit, contact_mtx, n_jobs, n_starts, dfmax, max_init_iters, \
@@ -75,6 +76,7 @@ if __name__ == "__main__":
     #######################################
     # Load, preprocess and validate input #
     #######################################
+
     print("Reading and processing input...")
     msa_a = TabularMSA.read(msa_a_path, constructor=Protein)
     msa_b = TabularMSA.read(msa_b_path, constructor=Protein)
