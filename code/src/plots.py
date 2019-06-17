@@ -18,7 +18,7 @@ import warnings
 
 from sklearn.metrics import confusion_matrix, matthews_corrcoef, log_loss
 
-from corrmut import round_labels
+from helpers import round_labels
 from contacts import evaluate_contact_predictions, discretize_pred_contact_mtx
 
 
