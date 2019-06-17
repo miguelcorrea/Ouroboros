@@ -4,7 +4,6 @@
 ---
 * Optimized model fitting code. This leads to a drastic decrease in running time without sacrificing model performance. An example case with the PDZ data is now around 18 times faster, while an example with the TCS data runs 27 times faster.
 * Now requires at least scikit-learn v. 0.20
-* Removed *helpers* module
 * Removed unused code
 
 ### v 0.2 (October 2018)

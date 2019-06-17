@@ -8,9 +8,6 @@ expectation-maximization.
 
 import os
 
-import output
-from contacts import compute_couplings, get_interacting, normalize_contact_mtx
-
 import numpy as np
 from tqdm import tqdm
 
@@ -18,8 +15,12 @@ from copy import copy
 import warnings
 
 from sklearn.linear_model import SGDClassifier
+
 from dummyestimator import DummyEstimator
 from globalvars import ALPHA_RANGE
+import output
+from contacts import compute_couplings, get_interacting, normalize_contact_mtx
+from helpers import round_labels
 
 
 ##################################
@@ -127,27 +128,6 @@ def has_converged(labels, pre_labels, mode, tol=0.005):
             converged = True
 
     return converged
-
-
-def round_labels(labels):
-    """
-    Round the labels for doing hard expectation-maximization.
-    The labels are rounded up to 1 if greater than 0.5, and down to 0 if below
-    0.5. In the (unlikely) event they are exactly equal to 0.5, it is randomly
-    rounded up or down.
-
-    Arguments
-    ---------
-    labels: array-like, values of the hidden variables
-
-    Returns
-    ---------
-    labels: array-like, rounded values of the hidden variables
-
-    """
-    labels = [np.random.choice([0, 1]) if x ==
-              0.5 else 1 if x > 0.5 else 0 for x in labels]
-    return labels
 
 
 #############################

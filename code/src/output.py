@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-Set of functions for producing output for the run_analysis script.
+Functions to create output.
 
 @author: Miguel Correa Marrero
 """
@@ -11,7 +11,7 @@ import numpy as np
 
 from sklearn.metrics import matthews_corrcoef, log_loss
 
-from corrmut import round_labels
+from helpers import round_labels
 import plots
 
 
